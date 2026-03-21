@@ -89,7 +89,60 @@ if uploaded_file is not None:
         else:
             st.warning("Please select at least 2 columns for correlation.")       
     else:
-        st.warning("No numeric columns available for correlation heatmap.")
+        st.warning("No numeric columns available for correlation heatmap.") 
+
+    st.markdown("---")
+
+    st.subheader("📊 Interactive Visualizations") 
+    col1, col2 = st.columns(2)
+
+    with col2:
+        chart_type = st.selectbox(
+            "Select Chart Type",
+            ["Histogram", "Boxplot", "Countplot"]
+        )
+
+    # Filter columns based on chart type
+    if chart_type in ["Histogram", "Boxplot"]:
+        st.caption("📌 Only numeric columns are available for this chart")
+        valid_cols = df_selected.select_dtypes(include=['float64', 'int64']).columns
+    else:
+        st.caption("📌 Works best with categorical columns")
+        valid_cols = df_selected.columns
+
+    with col1:
+        selected_col = st.selectbox("Select Column", valid_cols)
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # Histogram
+    if chart_type == "Histogram":
+        if pd.api.types.is_numeric_dtype(df_selected[selected_col]):
+            sns.histplot(df_selected[selected_col], kde=True, ax=ax)
+            ax.set_title(f"Distribution of {selected_col}")
+        else:
+            st.warning("Histogram only works with numeric columns.")
+
+    # Boxplot
+    elif chart_type == "Boxplot":
+        if pd.api.types.is_numeric_dtype(df_selected[selected_col]):
+            sns.boxplot(x=df_selected[selected_col], ax=ax)
+            ax.set_title(f"Boxplot of {selected_col}")
+        else:
+            st.warning("Boxplot only works with numeric columns.")
+
+    # Countplot
+    elif chart_type == "Countplot":
+        top_n = st.slider("Select number of top categories", 5, 20, 10)
+        top_categories = df_selected[selected_col].value_counts().nlargest(top_n).index
+        sns.countplot(
+            y=df_selected[selected_col],
+            order=top_categories,
+            ax=ax
+        )
+        ax.set_title(f"Top {top_n} categories in {selected_col}")
+
+    st.pyplot(fig)
 
     # Download Cleaned Data
     st.subheader("⬇️ Download Processed Data")
