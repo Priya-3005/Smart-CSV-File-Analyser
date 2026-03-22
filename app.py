@@ -13,7 +13,9 @@ st.sidebar.header("📂 Upload & Settings")
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+    df = pd.read_csv(uploaded_file) 
+    if "df_processed" not in st.session_state:
+        st.session_state.df_processed = df.copy()
 
     st.subheader("📌 Dataset Overview")
 
@@ -38,7 +40,8 @@ if uploaded_file is not None:
     # Column Selection
     st.sidebar.subheader("📌 Select Columns to Analyse")
     selected_columns = st.sidebar.multiselect("Choose columns", df.columns, default=df.columns)
-    df_selected = df[selected_columns]
+    #df_selected = df[selected_columns]
+    df_selected = st.session_state.df_processed[selected_columns]
 
     st.markdown("---")
 
@@ -233,31 +236,69 @@ if uploaded_file is not None:
     
     st.markdown("---") 
 
-    st.subheader("🛠️ Data Cleaning & Processing")
-    st.markdown("### Handle Missing Values")
+    st.subheader("🛠️ Data Cleaning & Processing") 
+    if st.button("🔄 Reset Data"):
+        st.session_state.df_processed = df.copy()
+        st.success("Data reset to original") 
+        st.rerun()
+    st.markdown("### Handle Missing Values (Column-wise)")
 
-    missing_option = st.selectbox(
-        "Choose method",
-        ["None", "Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"]
-    )
+    # Select column
+    missing_cols = df_selected.columns[df_selected.isnull().any()]
 
-    if missing_option != "None":
-        if missing_option == "Drop Rows":
-            df_selected = df_selected.dropna()
-            st.success("Dropped rows with missing values")
+    if len(missing_cols) > 0:
 
-        elif missing_option == "Fill with Mean":
-            df_selected = df_selected.fillna(df_selected.mean(numeric_only=True))
-            st.success("Filled missing values with mean")
+        selected_col = st.multiselect("Select columns", missing_cols)
 
-        elif missing_option == "Fill with Median":
-            df_selected = df_selected.fillna(df_selected.median(numeric_only=True))
-            st.success("Filled missing values with median")
+        method = st.selectbox(
+            "Choose method",
+            ["None", "Drop Rows", "Fill with Mean", "Fill with Median", "Fill with Mode"]
+        )
 
-        elif missing_option == "Fill with Mode":
-            df_selected = df_selected.fillna(df_selected.mode().iloc[0])
-            st.success("Filled missing values with mode") 
-        
+        if method != "None":
+
+            if method == "Drop Rows":
+                before = df_selected.shape[0]
+                df_selected = df_selected.dropna(subset=selected_col)
+                after = df_selected.shape[0]
+
+                st.success(f"Dropped {before - after} rows from '{selected_col}'")
+
+            elif method == "Fill with Mean":
+
+                for col in selected_col:
+
+                    # Check type BEFORE doing anything
+                    if not pd.api.types.is_numeric_dtype(df_selected[col]):
+                        st.warning(f"'{col}' is categorical → Mean not applied")
+                        continue
+
+                    df_selected[col] = df_selected[col].fillna(df_selected[col].mean())
+
+                st.success("Applied mean where valid")
+
+
+            elif method == "Fill with Median":
+
+                for col in selected_col:
+
+                    if not pd.api.types.is_numeric_dtype(df_selected[col]):
+                        st.warning(f"'{col}' is categorical → Median not applied")
+                        continue
+
+                    df_selected[col] = df_selected[col].fillna(df_selected[col].median())
+
+                st.success("Applied median where valid")
+
+            elif method == "Fill with Mode":
+                for col in selected_col:
+                    df_selected[col] = df_selected[col].fillna(df_selected[col].mode()[0])
+
+                st.success("Applied mode") 
+    else:
+        st.success("No missing values detected 🎉") 
+    st.session_state.df_processed = df_selected 
+
     st.markdown("### Remove Duplicates")
 
     if st.checkbox("Remove duplicate rows"):
@@ -274,7 +315,8 @@ if uploaded_file is not None:
     if cols_to_drop:
         df_selected = df_selected.drop(columns=cols_to_drop)
         st.success(f"Dropped columns: {', '.join(cols_to_drop)}") 
-    
+
+
     st.markdown("### Filter Data")
 
     filter_col = st.selectbox("Select column to filter", df_selected.columns)
@@ -302,13 +344,10 @@ if uploaded_file is not None:
         )
 
         if selected_values:
-            df_selected = df_selected[df_selected[filter_col].isin(selected_values)] 
+            df_selected = df_selected[df_selected[filter_col].isin(selected_values)]
     
     st.markdown("### 📄 Updated Dataset Preview")
     st.dataframe(df_selected.head())
-
-
-
 
 
 
@@ -318,7 +357,7 @@ if uploaded_file is not None:
     st.download_button("Download CSV", csv, "processed_data.csv", "text/csv")
 
 else:
-    st.info("👆 Please upload a CSV file to get started.") 
+    st.sidebar.info("👆Please upload a CSV file to get started.") 
 
 st.markdown("---")
 st.markdown("✨ Built by Priya | Smart CSV Analyzer")       
