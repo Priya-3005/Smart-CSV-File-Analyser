@@ -650,4 +650,4 @@ else:
     st.sidebar.info("👆Please upload a CSV file to get started.") 
 
 st.markdown("---")
-st.markdown("✨ Built by Priya | Smart CSV Analyzer")       
+st.markdown("✨ Built with streamlit | Smart CSV Analyzer")       
