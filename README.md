@@ -1,7 +1,7 @@
 # 📊 Smart CSV Analyzer
 
 An interactive and user-friendly data analysis web application built using **Streamlit** that enables users to upload, clean, analyze, visualize, and download processed datasets — all in one place. 
-🔗 Live App: https://smart-csv-file-analyser.streamlit.app/
+## 🔗 Live App: https://smart-csv-file-analyser.streamlit.app/
 ---
 
 ## 🚀 Overview
